@@ -5,12 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.io.File;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Класс PhotoService представляет сервис для работы с фотографиями.
- * Он содержит метод getPhotos() для получения списка фотографий с FTP-сервера,
- * и метод disconnect() для отключения от FTP-сервера.
+ * Он содержит методы для получения списка фотографий с FTP-сервера, отключения от FTP-сервера,
+ * и получения подробной информации о фотографии по ее пути.
  */
 @Service
 @Slf4j
@@ -50,5 +52,24 @@ public class PhotoService {
         if (ftpClientService != null) {
             ftpClientService.disconnectFromFtpServer();
         }
+    }
+
+    public Photo getPhotoInfo(String path) {
+        // Создаем объект класса File на основе указанного пути
+        File file = new File(path);
+
+        // Проверяем, существует ли файл
+        if (!file.exists()) {
+            log.error("Файл не найден: {}", path);
+            return null;
+        }
+
+        // Получаем информацию о файле
+        String name = file.getName();
+        long size = file.length();
+        Date creationTime = new Date(file.lastModified());
+
+        // Возвращаем объект с подробной информацией о фотографии
+        return new Photo(name, path, creationTime, size);
     }
 }

@@ -17,6 +17,15 @@ public class Photo {
     private Date creationTime;
     private long size;
 
+    public Photo() {}
+
+    public Photo(String name, String path, Date creationTime, long size) {
+        this.name = name;
+        this.path = path;
+        this.creationTime = creationTime;
+        this.size = size;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

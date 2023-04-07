@@ -4,14 +4,14 @@ package com.example.ftpphotoservice.service;
 import com.example.ftpphotoservice.factory.FtpClientFactory;
 import com.example.ftpphotoservice.model.Photo;
 import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -100,6 +100,24 @@ public class FtpClientService {
     }
 
     /**
+     * Декодирует URL-строку из URL-кодированного формата в обычный текст,
+     * используя кодировку UTF-8.
+     *
+     * @param encodedURL URL-строка в URL-кодированном формате для декодирования
+     * @return Декодированная URL-строка в обычном текстовом формате
+     */
+    public String decodeURL(String encodedURL) {
+        String decodedURL = null;
+        try {
+            decodedURL = URLDecoder.decode(encodedURL, StandardCharsets.UTF_8.toString());
+        } catch (IllegalArgumentException | UnsupportedEncodingException e) {
+            log.error("Ошибка при декодировании URL: " + encodedURL, e);
+        }
+        return decodedURL;
+    }
+
+
+    /**
      * Вспомогательный метод для создания объекта Photo на основе FTPFile и пути к папке.
      *
      * @param ftpFile         Объект FTPFile, представляющий файл на FTP-сервере.
@@ -109,7 +127,7 @@ public class FtpClientService {
     private Photo createPhotoObject(FTPFile ftpFile, String photoFolderPath) {
         Photo photo = new Photo();
         photo.setName(ftpFile.getName());
-        photo.setPath(photoFolderPath);
+        photo.setPath(decodeURL(photoFolderPath));
         photo.setCreationTime(ftpFile.getTimestamp().getTime());
         photo.setSize(ftpFile.getSize());
         return photo;
