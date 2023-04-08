@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -66,20 +67,21 @@ public class FtpClientService {
      * Рекурсивно обходит директории, начиная с указанной родительской директории,
      * и возвращает список файлов, соответствующих заданным критериям.
      *
-     * @param ftpDirectory     Родительская директория на FTP-сервере
+     * @param ftpDirectory Родительская директория на FTP-сервере
      * @param targetFolderName Имя целевой папки, содержащей файлы, которые нужно получить
-     * @param fileNamePrefix   Префикс имени файлов, которые нужно получить
-     * @return Список объектов класса Photo, представляющих файлы на FTP-сервере
+     * @param fileNamePrefix Префикс имени файлов, которые нужно получить
+     * @param photoList Список объектов класса Photo, в который будут добавлены найденные файлы
      */
-    public List<Photo> listFiles(String ftpDirectory, String targetFolderName, String fileNamePrefix) {
-        List<Photo> photoList = new ArrayList<>();
+    public void listFiles(String ftpDirectory, String targetFolderName, String fileNamePrefix, List<Photo> photoList) {
         try {
-            FTPFile[] files = ftpClient.listFiles(ftpDirectory);
+            String path = transformFtpDirectory(ftpDirectory);
+            FTPFile[] files = ftpClient.listFiles(path);
             for (FTPFile file : files) {
                 if (file.isDirectory() && !file.getName().equals(".") && !file.getName().equals("..")) {
                     if (file.getName().equals(targetFolderName)) {
                         Path photoFolderPath = Path.of(ftpDirectory, file.getName());
-                        FTPFile[] photos = ftpClient.listFiles(photoFolderPath.toString());
+                        path = transformFtpDirectory(photoFolderPath.toString());
+                        FTPFile[] photos = ftpClient.listFiles(path);
                         for (FTPFile photo : photos) {
                             if (photo.getName().startsWith(fileNamePrefix)) {
                                 Photo photoObject = createPhotoObject(photo, photoFolderPath.toString());
@@ -88,15 +90,32 @@ public class FtpClientService {
                         }
                     }
 
-                    photoList.addAll(listFiles(new String((ftpDirectory + "/" + file.getName()).getBytes(StandardCharsets.UTF_8),
-                            StandardCharsets.US_ASCII), targetFolderName, fileNamePrefix));
+                    listFiles((ftpDirectory + "/" + decodeURL(file.getName())), targetFolderName, fileNamePrefix, photoList);
                 }
             }
         } catch (IOException e) {
             log.error("Ошибка при получении списка файлов", e);
             // или выбросить более информативное исключение с сообщением об ошибке
         }
-        return photoList;
+    }
+
+
+    /**
+     * Метод для преобразования строки с FTP-директорией в соответствии с заданными правилами:
+     * 1. Если в FTP-директории присутствуют пробелы, то они удаляются.
+     * 2. Если FTP-директория не содержит пробелов, то она преобразуется в строку, закодированную в кодировке KOI8-R.
+     *
+     * @param ftpDirectory FTP-директория
+     * @return Преобразованная FTP-директория
+     */
+    private String transformFtpDirectory(String ftpDirectory) {
+        String transformedPath = "";
+        if (ftpDirectory.matches(".*\\s+.*")) {
+            transformedPath = ftpDirectory.replaceAll("\\s+", "");
+        } else {
+            transformedPath = new String(ftpDirectory.getBytes(), Charset.forName("koi8-r"));
+        }
+        return transformedPath;
     }
 
     /**

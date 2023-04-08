@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -30,9 +31,9 @@ public class PhotoService {
     public List<Photo> getPhotos() {
         log.info("Начало получение фотографий с FTP-сервера");
         try {
-            FtpClientService ftpClient = ftpClientService;
-            ftpClient.connectToFtpServer();
-            List<Photo> photos = ftpClient.listFiles("/", PHOTO_FOLDER, FILE_PREFIX);
+            ftpClientService.connectToFtpServer();
+            List<Photo> photos = new ArrayList<>();
+            ftpClientService.listFiles("/", PHOTO_FOLDER, FILE_PREFIX, photos);
             log.info("Завершение получения фотографий с FTP-сервера. Всего найдено фотографий: {}", photos.size());
             if (photos.isEmpty()) {
                 throw new RuntimeException("Ошибка при получении фотографий с FTP-сервера: список файлов пуст");
